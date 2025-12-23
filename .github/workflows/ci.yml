@@ -14,30 +14,26 @@ jobs:
   build-and-release:
     runs-on: ubuntu-latest
     steps:
-      - name: checkout
+      - name: Checkout
         uses: actions/checkout@v4
-      - name: set Node.js branch or tag name
+      - name: Set Node.js branch or tag name
         run: |
           if [ "${{ github.event_name }}" == "release" ]; then
             echo "VERSION=${{ github.event.release.tag_name }}" >> $GITHUB_ENV
           else
             echo "VERSION=main" >> $GITHUB_ENV
           fi
-      - name: build
+      - name: Install tools
+        run: sudo apt update && sudo apt install -y build-essential unzip jq
+      - name: Build
         run: ./build.sh ${{ env.VERSION }}
-      - name: upload artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          path: "./node/node-${{ env.VERSION }}-openharmony-arm64.tar.gz"
-          compression-level: 0
+          path: ${{ github.workspace }}/node-${{ env.VERSION }}-openharmony-arm64.tar.gz
           retention-days: 7
-      - name: upload release asset
+      - name: Upload release asset
+        uses: softprops/action-gh-release@v2
         if: github.event_name == 'release'
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ github.event.release.upload_url }} 
-          asset_path: "./node/node-${{ env.VERSION }}-openharmony-arm64.tar.gz"
-          asset_name: "node-${{ env.VERSION }}-openharmony-arm64.tar.gz"
-          asset_content_type: application/octet-stream
+          files: ${{ github.workspace }}/node-${{ env.VERSION }}-openharmony-arm64.tar.gz
